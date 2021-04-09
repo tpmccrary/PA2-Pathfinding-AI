@@ -1,5 +1,8 @@
 package PA2_Pathfinding_AI;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class SearchAlgorithm {
 
   // Your search algorithm should return a solution in the form of a valid
@@ -76,6 +79,65 @@ public class SearchAlgorithm {
 
     // YOUR CODE HERE
 
+    // initializePopulation
+    // evaluatePopulation
+    // while TerminationCriteriaNotSatisfied
+    // {
+    //    select parents for reproduction. (2)
+    //    perform crossover, put a mutation in a child.
+    //    evaluate population.
+    // }
+    
+    // These will be the two functions added to improve the basic algorithm
+    // ADD ELITISM to improve algorithm. Meaning choose the best from the previous population to move to the next.
+    // ADD TOURNEMENT STYLE SELECTION. Meaning have a random selection from the population to go against eachother and get the best.
+    // Good reference: https://www.youtube.com/watch?v=MacVqujSXWE
+
+    List<Schedule> population = genRanPopulation(problem, 10);
+    printSchedule(population.get(4));
+    printSchedule(population.get(0));
+
     return solution;
+  }
+
+  // Generates a random population given the scheduling problem. This means that for every room, it randomly assigns a course at a randomly selected time slot.
+  // This means it is possible to have a room that cannot be at that time slot.
+  private List<Schedule> genRanPopulation(SchedulingProblem problem, int ammount)
+  {
+    // Create a list of schedules. This will be our population, which is the schedules we will be comparing.
+    List<Schedule> schedulePop = new ArrayList<Schedule>();
+
+    // Iterate through the ammount of samples we want.
+    for (int i = 0; i < ammount; i++) {
+      // Creates an empty schedule.
+      Schedule sampleSchedule = problem.getEmptySchedule();
+
+      // Populate the schedule randomly in this loop.
+      for (int j = 0; j < sampleSchedule.schedule.length; j++) {
+        // Randomly choose a room number (column).
+        int ranRoomNum = problem.random.nextInt(sampleSchedule.schedule[0].length);
+        // In that room, set a randomly selected course there.
+        sampleSchedule.schedule[j][ranRoomNum] = problem.random.nextInt(problem.courses.size());
+      }
+
+      // Add this new sample to the population and repeat.
+      schedulePop.add(sampleSchedule);
+    }
+
+    return schedulePop;
+  }
+
+  // Prints the schedlue in human readable format.
+  private void printSchedule(Schedule schedule)
+  {
+    System.out.println("Rows are the rooms.");
+    System.out.println("Columns are the timeslots (always 10).");
+    for (int i = 0; i < schedule.schedule.length; i++) {
+      System.out.print("Room " + i + ": [");
+      for (int j = 0; j < schedule.schedule[i].length; j++) {
+        System.out.print(schedule.schedule[i][j] + ", ");
+      }
+      System.out.println("]");
+    }
   }
 }
