@@ -8,3 +8,5 @@ To run application:
     - arg4: Time limit (s).
     - arg5: Algorithm Number Choice.
     - arg6: Random Seed.
+
+2. Example: mvn exec:java -Dexec.args="5 5 5 5 0 5"
