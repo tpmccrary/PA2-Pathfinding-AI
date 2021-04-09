@@ -100,8 +100,8 @@ public class SearchAlgorithm {
     return solution;
   }
 
-  // Generates a random population given the scheduling problem. This means that for every room, it randomly assigns a course at a randomly selected time slot.
-  // This means it is possible to have a room that cannot be at that time slot.
+  // Generates a random population (aka a list of schedules) given the scheduling problem. This means that for every room, it randomly assigns a course at a randomly selected time slot.
+  // This means it is possible to have a room that cannot be at that time slot, this is expected.
   private List<Schedule> genRanPopulation(SchedulingProblem problem, int ammount)
   {
     // Create a list of schedules. This will be our population, which is the schedules we will be comparing.
@@ -125,6 +125,18 @@ public class SearchAlgorithm {
     }
 
     return schedulePop;
+  }
+
+  // Given a schedule, returns how fit it is. In other words, returns the value of this sample, how good it is.
+  // This will be a calculation if the number is higher.
+  private int checkSampleFitness(Schedule sampSchedule)
+  {
+    // Check if course can be in that timeslot. If it is, add the timeslot num to the score. If not set it to zero.
+    // Check if course fits in that room. if not set it to zero.
+    // Check if course is in the preffered building, if not, subtract penalty (distance of actual to preffered).
+    // Add these value together and return the score.
+
+    return 0;
   }
 
   // Prints the schedlue in human readable format.
