@@ -50,7 +50,10 @@ public class Main {
     }
     else if (algorithm == 1)
     {
-      solution = search.geneticAlgorithm(test1, deadline);
+      // solution = search.geneticAlgorithm(test1, deadline);
+      GeneticAlgorithm gAlgorithm = new GeneticAlgorithm(test1, deadline);
+
+      solution = gAlgorithm.geneticAlgorithm();
     } 
     else {
       System.out.println("ERROR: Given algorithm number does not exist!");
