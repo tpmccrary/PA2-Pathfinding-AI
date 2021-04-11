@@ -8,17 +8,23 @@ import java.util.Random;
 
 public class GeneticAlgorithm {
 
+    // The scheduling problem itself.
     private SchedulingProblem problem;
     private double deadline;
 
-    private int populationAmmount = 500;
+    // How may schedules in a populaiton.
+    private int populationAmount = 100;
+    // The rate at which crossovers are preformed. MUST be between 0 and 1.
     private double crossoverRate = 0.5;
+    // The rate at which mutations are preformed. MUST be between 0 and 1.
     private double mutationRate = 0.05;
+    // The partipant size for a tourney.
     private int tourneySize = 8;
 
     private int improvmentCounter = 0;
-    private int counterLimit = 500;
+    private int counterLimit = 800;
 
+    // Constructor.
     GeneticAlgorithm(SchedulingProblem problem, double deadline) {
         this.problem = problem;
         this.deadline = deadline;
@@ -54,6 +60,8 @@ public class GeneticAlgorithm {
 
     // Your search algorithm should return a solution in the form of a valid
     // schedule before the deadline given (deadline is given by system time in ms)
+
+    // Genetic algorithm starts here.
     public Schedule geneticAlgorithm() {
 
         // get an empty solution to start from
@@ -75,23 +83,30 @@ public class GeneticAlgorithm {
         // population to go against eachother and get the best.
         // Good reference: https://www.youtube.com/watch?v=MacVqujSXWE
 
-        // Create a random population. A list of schedules.
-        List<Schedule> population = genRanPopulation(this.populationAmmount);
+        // Create a random population. This is a list of schedules.
+        List<Schedule> population = genRanPopulation(this.populationAmount);
 
-        // List of objects to hold schedules and their scores.
+        // Initialize a list to hold the population that will be scored.
         List<ScoredSchedule> scoredPopulation = new ArrayList<ScoredSchedule>();
 
-        // Go through the population, giving each sample a score.
+        // Go through the population, giving each sample a score. This puts the schedule and score into
+        // an object, and that object gets put into the prev list.
         for (Schedule schedule : population) {
             scoredPopulation.add(new ScoredSchedule(checkSampleFitness(schedule), schedule));
         }
 
-        while (improvmentCounter < counterLimit) {
+        boolean passedDeadline = false;
+        while (improvmentCounter < counterLimit && passedDeadline == false) {
 
-            printBestScore(scoredPopulation);
-
+            if (System.currentTimeMillis() > deadline)
+            {
+                passedDeadline = true;
+            }
+      
+            // Initialize a list that will be our new population.
             List<ScoredSchedule> newScoredPopulation = new ArrayList<ScoredSchedule>();
 
+            // Keep adding to the new population until its the same size as the old population.
             while (newScoredPopulation.size() < scoredPopulation.size()) {
                 // Make a list to hold the parents.
                 List<ScoredSchedule> parents = new ArrayList<ScoredSchedule>();
@@ -100,38 +115,54 @@ public class GeneticAlgorithm {
                 parents.add(tourneySelection(scoredPopulation));
                 parents.add(tourneySelection(scoredPopulation));
 
-                List<ScoredSchedule> children = crossover(this.crossoverRate, parents);
-
-                // Compare children to the best of the last population?
-
-                // // check improvment, if no improvment, up the counter.
-                // if (isImprovment(children, parents) == false) {
-                //     improvmentCounter++;
-                // } else {
-                //     // System.out.println("IMPROVMENT");
-                //     improvmentCounter = 0;
+                // while (parents.get(0).score == parents.get(1).score)
+                // {
+                //     parents = new ArrayList<ScoredSchedule>();
+                //     parents.add(tourneySelection(scoredPopulation));
+                //     parents.add(tourneySelection(scoredPopulation));
                 // }
 
-                improvmentCounter++;
+                // Get a list of children (onlt two) from crossing over the two parents.
+                List<ScoredSchedule> children = crossover(this.crossoverRate, parents);
 
-                // Add children to new population.
+                if (improvmentOccured(children, parents) == false)
+                {
+                    improvmentCounter++;
+                }
+                else
+                {
+                    improvmentCounter = 0;
+                }
+
+
+                // Add the children to the new population.
                 for (ScoredSchedule child : children) {
                     newScoredPopulation.add(new ScoredSchedule(checkSampleFitness(child.schedule), child.schedule));
                 }
 
             }
 
+            // Use elitism to get the best schedule from the previous population, and put it in the new one.
             scoredPopulation = elitisim(newScoredPopulation, scoredPopulation);
 
-            // printPopulation(scoredPopulation);
+            // printBestScore(scoredPopulation);
+            // improvmentCounter++;
+
+
         }
 
-        // printPopulation(scoredPopulation);
+        // printPopulation(scoredPopulation);   
         
-        System.out.println("___SCORE: " + scoredPopulation.get(0).score);
-        printSchedule(scoredPopulation.get(0).schedule);
+        ScoredSchedule bestSchedule = getBestSchedule(scoredPopulation);
 
-        return scoredPopulation.get(0).schedule;
+        // printSchedule(scoredPopulation.get(0).schedule);
+
+        System.out.println("BEST END___SCORE: " + bestSchedule.score);
+        printSchedule(bestSchedule.schedule);
+
+        printPopulation(scoredPopulation, false);
+
+        return bestSchedule.schedule;
 
         // return solution;
     }
@@ -148,41 +179,33 @@ public class GeneticAlgorithm {
 
         Random random = new Random();
 
-        List<Integer> scheduledCourses = new ArrayList<Integer>();
-
-        // Iterate through the ammount of samples we want.
+        // Loops the ammount we want to be in the population.
         for (int i = 0; i < ammount; i++) {
-            // Creates an empty schedule.
+
+             // Creates an empty schedule.
             Schedule sampleSchedule = problem.getEmptySchedule();
 
-            // Populate the schedule randomly in this loop.
-            for (int j = 0; j < sampleSchedule.schedule.length; j++) {
+            for (int j = 0; j < problem.courses.size(); j++) {
+                int course = j;
 
-                for (int k = 0; k < sampleSchedule.schedule[j].length; k++) {
-
-                    if (scheduledCourses.size() == problem.courses.size()) {
-                        break;
-                    }
-
-                    // Get a random course number.
-                    int ranCourse = random.nextInt(problem.courses.size());
-
-                    // If the course is not used, then schedule it, else, I keep trying to generate
-                    // a random course that is not used.
-                    while (scheduledCourses.contains(ranCourse)) {
-                        ranCourse = random.nextInt(problem.courses.size());
-                    }
-
-                    // Schedule random course.
-                    sampleSchedule.schedule[j][k] = ranCourse;
-                    scheduledCourses.add(ranCourse);
-
+                if (course >= problem.rooms.size() * problem.courses.get(course).timeSlotValues.length)
+                {
+                    break;
                 }
+    
+                int ranRoom = random.nextInt(problem.rooms.size());
+                int ranTimeslot = random.nextInt(problem.courses.get(course).timeSlotValues.length);
+
+                while (sampleSchedule.schedule[ranRoom][ranTimeslot] != -1)
+                {
+                    ranRoom = random.nextInt(problem.rooms.size());
+                    ranTimeslot = random.nextInt(problem.courses.get(course).timeSlotValues.length);
+                }
+
+                sampleSchedule.schedule[ranRoom][ranTimeslot] = course;
             }
 
-            // Add this new sample to the population and repeat.
             schedulePop.add(sampleSchedule);
-            scheduledCourses = new ArrayList<Integer>();
         }
 
         return schedulePop;
@@ -200,81 +223,22 @@ public class GeneticAlgorithm {
         // Check there are no duplicate courses.
         // Add these value together and return the score.
 
-        double score = 0.0;
-        int course = -1;
-
-        List<Integer> scheduledCourses = new ArrayList<Integer>();
-
-        for (int i = 0; i < sampSchedule.schedule.length; i++) {
-            for (int j = 0; j < sampSchedule.schedule[i].length; j++) {
-                course = sampSchedule.schedule[i][j];
-
-                if (course == -1) {
-                    continue;
-                }
-
-                // Check if that course is duplicated somewhere else in the schedule. If so
-                // return.
-                if (scheduledCourses.contains(course)) {
-                    System.out.println("Duplicate coures");
-                    return 0.0;
-                }
-
-                // Check to see if that course can be scheduled there. If so, return.
-                if (problem.courses.get(course).timeSlotValues[j] == 0) {
-                    // System.out.println("Course cannot be scheduled in this time slot");
-                    // return 0.0;
-                    sampSchedule.schedule[i][j] = -1;
-                }
-
-                // Check to see if the number of enrolled students is greater than the room
-                // number. If so, return.
-                if (problem.courses.get(course).enrolledStudents > problem.rooms.get(i).capacity) {
-                    // System.out.println("Room capacity is to small.");
-                    // return 0.0;
-                    sampSchedule.schedule[i][j] = -1;
-                }
-
-                int timeslotBonus = problem.courses.get(course).timeSlotValues[j];
-
-                score += timeslotBonus;
-
-                // Here we will check if the course is in the preffered building.
-                Building preferredBuild;
-                Building actualBuild;
-
-                preferredBuild = problem.courses.get(course).preferredLocation;
-                actualBuild = problem.rooms.get(i).b;
-
-                // If the coordinates are not the same, then we have to get the distance and
-                // subtract it from thes score.
-                if (preferredBuild.xCoord != actualBuild.xCoord || preferredBuild.yCoord != actualBuild.yCoord) {
-                    double distance = 0.0;
-
-                    distance = Math.sqrt(Math.abs((preferredBuild.xCoord - actualBuild.xCoord)
-                            + (preferredBuild.yCoord - actualBuild.yCoord)));
-
-                    score = score - distance;
-                }
-
-            }
-        }
-
-        return score;
+        return problem.evaluateSchedule(sampSchedule);
     }
 
+    // Given a population, selects a set ammount for them to "fight" against eachother. One with best score wins and is returned.
     private ScoredSchedule tourneySelection(List<ScoredSchedule> scoredPopulation) {
         Random random = new Random();
 
-        ScoredSchedule contender1 = scoredPopulation.get(random.nextInt(scoredPopulation.size()));
-        ScoredSchedule contender2 = contender1;
-
+        // Create a list that will hold the schedules and their scores.
         List<ScoredSchedule> contenders = new ArrayList<ScoredSchedule>();
 
-        for (int i = 0; i < tourneySize; i++) {
+        // For the ammount in the tourney, randomly pick contenders.
+        for (int i = 0; i < this.tourneySize; i++) {
             contenders.add(scoredPopulation.get(random.nextInt(scoredPopulation.size())));
         }
-
+        
+        // Go through the list of contenders and get the one with the best score.
         ScoredSchedule bestContender = contenders.get(0);
         for (ScoredSchedule contender : contenders) {
             if (bestContender.score < contender.score)
@@ -286,66 +250,163 @@ public class GeneticAlgorithm {
         return bestContender;
     }
 
+    // This is the crossover function. This crossover function is based off OX1. 
+    // Given parents, they are crossover to make children, and the children are then returned.
     private List<ScoredSchedule> crossover(double crossoverRate, List<ScoredSchedule> parents) {
         Random random = new Random();
 
-        ScoredSchedule child1 = new ScoredSchedule(parents.get(0).score, parents.get(0).schedule);
-        ScoredSchedule child2 = new ScoredSchedule(parents.get(1).score, parents.get(1).schedule);
+        // Create two new child objects to hold their score and schedule.
+        ScoredSchedule child1 = new ScoredSchedule(0.0, parents.get(0).schedule);
+
+        ScoredSchedule child2 = new ScoredSchedule(0.0, parents.get(0).schedule);
 
         // Get a random value between 0 amd 1.
         double randomValue = 0 + (1 - 0) * random.nextDouble();
-
+        // Determine if we crossover.
         if (randomValue < crossoverRate) {
-            ScoredSchedule child1Temp = new ScoredSchedule(parents.get(0).score, parents.get(0).schedule);
 
-            // Start at half way point. Cross over the parents.
-            for (int i = child1.schedule.schedule.length / 2; i < child1.schedule.schedule.length; i++) {
+            // If we crossover, make the childrens schedules empty.
+            child1.schedule = problem.getEmptySchedule();
+            child2.schedule = problem.getEmptySchedule();
+
+            // USING OX1 Crossover.
+
+            // Gets two crossover points.
+            int crossoverPoint1 = random.nextInt(this.problem.rooms.size());
+            int crossoverPoint2 = random.nextInt(this.problem.rooms.size());
+
+            // A list of courses that have been scheduled.
+            List<Integer> scheduledCourses = new ArrayList<Integer>();
+
+            // This ensures crossoverPoint2 is greater than crossoverPoint1.
+            while (crossoverPoint2 < crossoverPoint1)
+            {
+                crossoverPoint2 = random.nextInt(this.problem.rooms.size());
+            }
+
+            // Copy data between these points in parent 1 to child 1.
+            for (int i = crossoverPoint1; i <= crossoverPoint2; i++) {
+                // child1.schedule.schedule[i] = parents.get(0).schedule.schedule[i];
+
                 for (int j = 0; j < child1.schedule.schedule[i].length; j++) {
-                    child1.schedule.schedule[i][j] = child2.schedule.schedule[i][j];
-                    child2.schedule.schedule[i][j] = child1Temp.schedule.schedule[i][j];
+                    child1.schedule.schedule[i][j] = parents.get(0).schedule.schedule[i][j];
+
+                    if (child1.schedule.schedule[i][j] != -1)
+                    {
+                        scheduledCourses.add(child1.schedule.schedule[i][j]);
+                    }
                 }
             }
-        }
 
+            // Now put the other rows from parent 2 into child 1.
+            int index = crossoverPoint2;
+            for (int i = 0; i < parents.get(1).schedule.schedule.length - ((crossoverPoint2 - crossoverPoint1) + 1); i++) {
+                index++;
+                if (index >= parents.get(1).schedule.schedule.length)
+                {
+                    index = 0;
+                }
+
+                for (int j = 0; j < child1.schedule.schedule[i].length; j++) {
+                    if (scheduledCourses.contains(parents.get(1).schedule.schedule[index][j]) == false)
+                    {
+                        child1.schedule.schedule[index][j] = parents.get(1).schedule.schedule[index][j];
+                        scheduledCourses.add(child1.schedule.schedule[index][j]);
+
+                    }
+                }
+
+            }
+
+            // Create new crossover points for the next child.
+            crossoverPoint1 = random.nextInt(this.problem.rooms.size());
+            crossoverPoint2 = random.nextInt(this.problem.rooms.size());
+
+            // Re-initializes courses that have been scheduled.
+            scheduledCourses = new ArrayList<Integer>();
+
+            // This ensures crossoverPoint2 is greater than 1.
+            while (crossoverPoint2 < crossoverPoint1)
+            {
+                crossoverPoint2 = random.nextInt(this.problem.rooms.size());
+            }
+
+            // Copy data between these points in parent2 to child 2.
+            for (int i = crossoverPoint1; i <= crossoverPoint2; i++) {
+                // child1.schedule.schedule[i] = parents.get(0).schedule.schedule[i];
+
+                for (int j = 0; j < child2.schedule.schedule[i].length; j++) {
+                    child2.schedule.schedule[i][j] = parents.get(1).schedule.schedule[i][j];
+
+                    if (child2.schedule.schedule[i][j] != -1)
+                    {
+                        scheduledCourses.add(child2.schedule.schedule[i][j]);
+                    }
+                }
+            }
+
+
+            // Now put the other rows in parent 1 into child 2.
+            index = crossoverPoint2;
+            for (int i = 0; i < parents.get(0).schedule.schedule.length - ((crossoverPoint2 - crossoverPoint1) + 1); i++) {
+                index++;
+                if (index >= parents.get(0).schedule.schedule.length)
+                {
+                    index = 0;
+                }
+
+                for (int j = 0; j < child2.schedule.schedule[i].length; j++) {
+                    if (scheduledCourses.contains(parents.get(0).schedule.schedule[index][j]) == false)
+                    {
+                        child2.schedule.schedule[index][j] = parents.get(0).schedule.schedule[index][j];
+                        scheduledCourses.add(child2.schedule.schedule[index][j]);
+
+                    }
+                }
+
+            }
+        }
+        
+        // Create reference to new population created (the new children).
         List<ScoredSchedule> newScoredPopulaton = new ArrayList<ScoredSchedule>();
 
-        newScoredPopulaton.add(mutation(this.mutationRate, child1));
-        newScoredPopulaton.add(mutation(this.mutationRate, child2));
+        // Attempt to mutate the children. Then add them to the list while calculating their score.
+        child1 = mutation(this.mutationRate, child1);
+        newScoredPopulaton.add(new ScoredSchedule(checkSampleFitness(child1.schedule), child1.schedule));
+
+        child2 = mutation(this.mutationRate, child2);
+        newScoredPopulaton.add(new ScoredSchedule(checkSampleFitness(child2.schedule), child2.schedule));
+
 
         return newScoredPopulaton;
 
     }
 
+    // This is the mutation function. Given a child, will mutate them based on a rate. Returns the given child.
+    // This mutation is based on swapping two random courses in the schedule.
     private ScoredSchedule mutation(double mutationRate, ScoredSchedule child) {
         Random random = new Random();
 
-        // Go through every row in the schedule.
-        for (int i = 0; i < child.schedule.schedule.length; i++) {
-            for (int j = 0; j < child.schedule.schedule[i].length; j++) {
-                // Get a random value between 0 amd 1.
-                double randomValue = 0 + (1 - 0) * random.nextDouble();
 
-                // If random value is less than mutation rate, mutate the row.
-                if (randomValue < mutationRate) {
-                    // Randomlly assign a course to that room (row);
-                    child.schedule.schedule[i][j] = random.nextInt(problem.courses.size());
-                }
-            }
+        // Get a random value between 0 amd 1.
+        double randomValue = 0 + (1 - 0) * random.nextDouble();
 
-            // // Get a random value between 0 amd 1.
-            // double randomValue = 0 + (1 - 0) * random.nextDouble();
+        // If random value is less than mutation rate, then we mutate.
+        if (randomValue < mutationRate) {
+            // Get a random room and timeslot.
+            int ranRoom1 = random.nextInt(problem.rooms.size());
+            int ranTimeslot1 = random.nextInt(problem.courses.get(0).timeSlotValues.length);
 
-            // // If random value is less than mutation rate, mutate the row.
-            // if (randomValue < mutationRate) {
-            // // Set the rows to -1.
-            // for (int j = 0; j < child.schedule.schedule[i].length; j++) {
-            // child.schedule.schedule[i][j] = -1;
-            // }
-            // // Randomlly assign a course to that room (row);
-            // child.schedule.schedule[i][random.nextInt(child.schedule.schedule[i].length)]
-            // = random
-            // .nextInt(problem.courses.size());
-            // }
+            // Get another random room and timeslote.
+            int ranRoom2 = random.nextInt(problem.rooms.size());
+            int ranTimeslot2 = random.nextInt(problem.courses.get(0).timeSlotValues.length);
+
+            // Temporarly remember the first random room and timeslot.
+            int tempCourseNum = child.schedule.schedule[ranRoom1][ranTimeslot1];
+
+            // Swap the first random room and timeslots course with the other.
+            child.schedule.schedule[ranRoom1][ranTimeslot1] = child.schedule.schedule[ranRoom2][ranTimeslot2];
+            child.schedule.schedule[ranRoom2][ranTimeslot2] = tempCourseNum;
         }
 
         // return the mutated child
@@ -353,7 +414,10 @@ public class GeneticAlgorithm {
 
     }
 
+    // This gets the best schedule from the old population and puts it in the worse schedule for the new population.
     private List<ScoredSchedule> elitisim(List<ScoredSchedule> newPopulation, List<ScoredSchedule> oldPopulation) {
+
+        // Get the best schedule in the old population and store it in oldPopMax.
         ScoredSchedule oldPopMax = null;
         for (int i = 1; i < oldPopulation.size(); i++) {
             oldPopMax = oldPopulation.get(i - 1);
@@ -363,6 +427,7 @@ public class GeneticAlgorithm {
             }
         }
 
+        // Get the index of the worse population in the new population.
         ScoredSchedule newPopMin;
         int newMinIndex = 0;
         for (int i = 1; i < newPopulation.size(); i++) {
@@ -374,13 +439,14 @@ public class GeneticAlgorithm {
             }
         }
 
+        // Replacing here.
         newPopulation.set(newMinIndex, oldPopMax);
 
         return newPopulation;
 
     }
 
-    private boolean isImprovment(List<ScoredSchedule> children, List<ScoredSchedule> parents) {
+    private boolean improvmentOccured(List<ScoredSchedule> children, List<ScoredSchedule> parents) {
         for (ScoredSchedule parent : parents) {
             if (children.get(0).score > parent.score || children.get(1).score > parent.score) {
                 return true;
@@ -388,6 +454,20 @@ public class GeneticAlgorithm {
         }
 
         return false;
+    }
+
+    private ScoredSchedule getBestSchedule(List<ScoredSchedule> population)
+    {
+        ScoredSchedule populationMax = null;
+        for (int i = 1; i < population.size(); i++) {
+            populationMax = population.get(i - 1);
+
+            if (populationMax.score < population.get(i).score) {
+                populationMax = population.get(i);
+            }
+        }
+
+        return populationMax;
     }
 
     private void printBestScore(List<ScoredSchedule> population)
@@ -417,10 +497,13 @@ public class GeneticAlgorithm {
         }
     }
 
-    private void printPopulation(List<ScoredSchedule> population) {
+    private void printPopulation(List<ScoredSchedule> population, boolean printSchedule) {
         for (ScoredSchedule scoredSchedule : population) {
             System.out.println("_____SCORE: " + scoredSchedule.score + "_____");
-            printSchedule(scoredSchedule.schedule);
+            if (printSchedule)
+            {
+                printSchedule(scoredSchedule.schedule);
+            }
         }
     }
 
