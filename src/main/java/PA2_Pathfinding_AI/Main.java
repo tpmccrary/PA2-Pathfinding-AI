@@ -86,11 +86,11 @@ public class Main {
     List<GeneticAlgorithm> genAlgThreads = new ArrayList<GeneticAlgorithm>();
 
       int numCores = Runtime.getRuntime().availableProcessors();
-      int threadAmount = (numCores * 2) - 1;
+      int threadAmount = numCores;
 
       for (int i = 0; i < threadAmount; i++) {
         genAlgThreads.add(new GeneticAlgorithm(problem, deadline));
-        genAlgThreads.get(i).populationAmount = random.nextInt((1000 - 250) + 1) + 250;
+        genAlgThreads.get(i).populationAmount = random.nextInt((500 - 50) + 1) + 50;
         genAlgThreads.get(i).counterLimit = random.nextInt((1000 - 500) + 1) + 500;
         genAlgThreads.get(i).crossoverRate = 0.3 + (0.7 - 0.3) * random.nextDouble();
         genAlgThreads.get(i).mutationRate = 0.03 + (0.07 - 0.03) * random.nextDouble();

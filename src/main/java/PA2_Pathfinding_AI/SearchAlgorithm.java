@@ -23,20 +23,20 @@ public class SearchAlgorithm {
     Schedule solution = problem.getEmptySchedule();
 
     for (int i = 0; i < problem.courses.size(); i++) {
-      System.out.println("Getting course: " + i + " in our problem.");
+      // System.out.println("Getting course: " + i + " in our problem.");
       Course c = problem.courses.get(i);
       boolean scheduled = false;
-      System.out.println("Iterating through all the time slots from course: " + i);
+      // System.out.println("Iterating through all the time slots from course: " + i);
       for (int j = 0; j < c.timeSlotValues.length; j++) {
         if (scheduled)
           break;
         if (c.timeSlotValues[j] > 0) {
-          System.out.println("Course: " + i + " time slot at " + j + "(" + c.timeSlotValues[j]
-              + ") is greater than 0. Going to iterate through all the rooms.");
+          // System.out.println("Course: " + i + " time slot at " + j + "(" + c.timeSlotValues[j]
+          //     + ") is greater than 0. Going to iterate through all the rooms.");
           for (int k = 0; k < problem.rooms.size(); k++) {
             if (solution.schedule[k][j] < 0) {
-              System.out.println("Schedule at pos: " + k + "," + j + " is empty. Put course: " + i
-                  + " in this position. Course is now scheduled.");
+              // System.out.println("Schedule at pos: " + k + "," + j + " is empty. Put course: " + i
+              //     + " in this position. Course is now scheduled.");
               solution.schedule[k][j] = i;
               scheduled = true;
               break;
