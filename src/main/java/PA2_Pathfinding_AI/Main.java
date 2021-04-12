@@ -61,6 +61,10 @@ public class Main {
 
       solution = runGeneticAlgThreaded(test1, deadline);
     } 
+    else if (algorithm == 2)
+    {
+      solution = search.simulatedAnnealingSolver(test1, deadline);
+    }
     else {
       System.out.println("ERROR: Given algorithm number does not exist!");
       System.exit(1);
