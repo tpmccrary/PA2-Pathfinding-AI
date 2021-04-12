@@ -1,5 +1,9 @@
 package PA2_Pathfinding_AI;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
 public class Main {
 
   public static void main(String[] args) {
@@ -50,7 +54,12 @@ public class Main {
     }
     else if (algorithm == 1)
     {
-      solution = search.geneticAlgorithm(test1, deadline);
+      // solution = search.geneticAlgorithm(test1, deadline);
+      // GeneticAlgorithm gAlgorithm = new GeneticAlgorithm(test1, deadline);
+
+      // solution = gAlgorithm.geneticAlgorithm();
+
+      solution = runGeneticAlgThreaded(test1, deadline);
     } 
     else {
       System.out.println("ERROR: Given algorithm number does not exist!");
@@ -69,4 +78,35 @@ public class Main {
     System.out.println("Score: " + score);
     System.out.println();
   }  
+
+  private static Schedule runGeneticAlgThreaded(SchedulingProblem problem, double deadline)
+  {
+    Random random = new Random();
+
+    List<GeneticAlgorithm> genAlgThreads = new ArrayList<GeneticAlgorithm>();
+
+      int numCores = Runtime.getRuntime().availableProcessors();
+      int threadAmount = numCores;
+
+      for (int i = 0; i < threadAmount; i++) {
+        genAlgThreads.add(new GeneticAlgorithm(problem, deadline));
+        genAlgThreads.get(i).populationAmount = random.nextInt((500 - 50) + 1) + 50;
+        genAlgThreads.get(i).counterLimit = random.nextInt((1000 - 500) + 1) + 500;
+        genAlgThreads.get(i).crossoverRate = 0.3 + (0.7 - 0.3) * random.nextDouble();
+        genAlgThreads.get(i).mutationRate = 0.03 + (0.07 - 0.03) * random.nextDouble();
+        genAlgThreads.get(i).start();
+      }
+
+      for (GeneticAlgorithm geneticAlgorithm : genAlgThreads) {
+        try {
+          geneticAlgorithm.join();
+        } catch (InterruptedException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
+      }
+
+      return GeneticAlgorithm.getBestSchedule(GeneticAlgorithm.solutions).schedule;
+  }
+
 }
