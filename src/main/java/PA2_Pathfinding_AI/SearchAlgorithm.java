@@ -2,6 +2,7 @@ package PA2_Pathfinding_AI;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.*;
 
 public class SearchAlgorithm {
 
@@ -46,6 +47,131 @@ public class SearchAlgorithm {
     }
 
     return solution;
+  }
+
+  /**
+	 * Simulated Annealing: First Search Chosen
+	 * 
+	 * @param problem
+	 * @param deadline
+	 * @return
+	 */
+	public Schedule simulatedAnnealingSolver(SchedulingProblem problem, long deadline) {
+		Schedule current_schedule = problem.getEmptySchedule();
+		Schedule modified_schedule = problem.getEmptySchedule();
+
+    System.out.println("propsed deadline: " + deadline / 1000);
+
+    long time = System.currentTimeMillis();
+
+		double temperature = 10000;
+		double delta_E;
+
+    current_schedule = createRandomSchedule(problem);
+
+    System.out.println("Current: " + System.currentTimeMillis());
+    System.out.println("Our Time: " + System.currentTimeMillis());
+
+    // Run forever
+    while (1==1) {
+
+      // When temperature is 0 we stop and return what we have
+			if (temperature <= 0 || time > deadline - 100){
+        System.out.println("Current TEMP: " + time);
+				return current_schedule;
+      }
+
+			modified_schedule = createModifiedSchedule(current_schedule, problem);
+
+			delta_E = problem.evaluateSchedule(modified_schedule) - problem.evaluateSchedule(current_schedule); 
+
+      // If the modified schedule is better than the current schedule
+			if (delta_E > 0){
+				current_schedule = modified_schedule;
+      }
+      // else if ((Math.exp(delta_E / temperature) - .9) > Math.random()){
+      //   current_schedule = modified_schedule;
+      // }
+
+      // This is the cool down.
+      temperature = temperature * (1 - (System.currentTimeMillis() / deadline));
+		}
+
+	}
+
+
+  /**
+	 * Creates a random schedule to start the problem with small heurisitc
+	 * @param problem
+	 * @return
+	 */
+	private Schedule createRandomSchedule(SchedulingProblem problem) {
+		Schedule random_schedule = problem.getEmptySchedule();
+		int row = 0, col = 0;
+		
+		for(int i=0; i<problem.courses.size(); i++) {		// Populate schedule
+			Course randomCourse = problem.courses.get(i);
+			row = (int)(Math.random()*randomCourse.timeSlotValues.length);
+			col = (int)(Math.random()*problem.rooms.size());
+
+			while(random_schedule.schedule[col][row]!=-1) {
+				row=(int)(Math.random()*randomCourse.timeSlotValues.length);
+				col=(int)(Math.random()*problem.rooms.size());
+			}
+			random_schedule.schedule[col][row]=i;
+    }
+
+		return random_schedule;
+	}
+
+  /**
+	 * Slighty modifies given schedule to be evaluated later
+	 * @param current
+   * @param problem
+	 * @return
+	 */
+	private Schedule createModifiedSchedule(Schedule current, SchedulingProblem problem) {
+		Random random = new Random();
+    Schedule modified_schedule = createDuplicate(current, problem);
+
+    int[][] tempArray = modified_schedule.schedule;
+    int counter = 5;
+
+    // Will perform the swap function counter many times. 
+    while (counter > 0) {
+
+      //Swap Function
+      int firstX = random.nextInt(tempArray.length);
+      int firstY = random.nextInt(tempArray[0].length);
+      int secondX = random.nextInt(tempArray.length);
+      int secondY = random.nextInt(tempArray[0].length);
+
+      int temp = tempArray[firstX][firstY];
+      tempArray[firstX][firstY] = tempArray[secondX][secondY];
+      tempArray[secondX][secondY] =  temp;
+
+      counter--;
+    }
+		return modified_schedule;
+	}
+
+  /**
+   * Creates a duplicate of the schedule given
+   * 
+   * @param current
+   * @param problem
+   * @return
+   */
+  Schedule createDuplicate(Schedule current, SchedulingProblem problem) {
+    Schedule duplicate = problem.getEmptySchedule();
+
+    for(int i = 0; i < current.schedule.length; i++) {
+      for(int j = 0; j < current.schedule[i].length; j++) {
+        duplicate.schedule[i][j] = current.schedule[i][j];
+      }
+    }
+
+    return duplicate;
   }
 
   // Find best possible schedule.
